@@ -1,3 +1,7 @@
+var fs = require('fs');
+var https = require('https');
+// openssl req -x509 -nodes -days 365 -newkey rsa:1024 -out my.crt -keyout my.key
+
 var express = require('express');
 var passport = require('passport');
 var bodyParser = require('body-parser');
@@ -7,6 +11,11 @@ var passportLocal = require('passport-local');
 var passportHttp = require('passport-http');
 
 var app = express();
+var server = https.createServer({
+	cert: fs.readFileSync(__dirname+'/my.crt'),
+	key: fs.readFileSync(__dirname+'/my.key')
+}, app);
+
 
 // -------------------------------------------------
 app.set('view engine', 'ejs');
@@ -76,7 +85,7 @@ app.get('/logout', function(req,res){
 });
 
 
-app.use('/api', passport.authenticate('basic'));
+app.use('/api', passport.authenticate('basic', {session: false}));
 
 app.get('/api/data', ensureAuthenticated, function(req, res){
 	res.json([
@@ -90,6 +99,6 @@ app.get('/api/data', ensureAuthenticated, function(req, res){
 
 var port = process.env.PORT || 1337;
 
-app.listen(port, function(){
+server.listen(port, function(){
 	console.log('http://localhost:'+port+'/');
 });
