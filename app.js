@@ -1,9 +1,10 @@
 var express = require('express');
 var passport = require('passport');
-var passportLocal = require('passport-local');
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var expressSession = require('express-session');
+var passportLocal = require('passport-local');
+var passportHttp = require('passport-http');
 
 var app = express();
 
@@ -21,7 +22,11 @@ app.use(expressSession({
 app.use(passport.initialize());
 app.use(passport.session());
 
-passport.use(new passportLocal.Strategy(function(username, password, done){
+passport.use(new passportLocal.Strategy(verifyCredentials));
+
+passport.use(new passportHttp.BasicStrategy(verifyCredentials));
+
+function verifyCredentials(username, password, done){
 	// Implement logic here...
 	if(username === password){
 		// No time! :|
@@ -29,7 +34,7 @@ passport.use(new passportLocal.Strategy(function(username, password, done){
 	} else {
 		done(null, null);
 	}
-}));
+}
 
 passport.serializeUser(function(user, done){
 	done(null, user.id);
@@ -39,6 +44,14 @@ passport.deserializeUser(function(id, done){
 	// Query database/cache here
 	done(null, {id: id, name: id});
 });
+
+function ensureAuthenticated(req, res, next){
+	if(req.isAuthenticated()){
+		next();
+	} else {
+		res.send(403);
+	}
+}
 
 // -------------------------------------------------
 app.get('/', function(req, res){
@@ -60,6 +73,17 @@ app.post('/login', passport.authenticate('local'), function(req, res){
 app.get('/logout', function(req,res){
 	req.logout();
 	res.redirect('/');
+});
+
+
+app.use('/api', passport.authenticate('basic'));
+
+app.get('/api/data', ensureAuthenticated, function(req, res){
+	res.json([
+		{value: 'mohit'},
+		{value: 'mehrotra'},
+		{value: 'test'},
+		]);
 });
 
 // -------------------------------------------------
